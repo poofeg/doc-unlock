@@ -1,0 +1,75 @@
+[project]
+name = "doc-unlock"
+version = "0.1.0"
+description = "Unlock OOXML files (primarily PPTX) by removing edit protection"
+authors = [
+    {name = "Alexey Vaganov",email = "poofeg@gmail.com"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.14,<4.0"
+dependencies = [
+    "msoffcrypto-tool (>=6.0.0,<7.0.0)",
+    "typer (>=0.27.1,<0.28.0)",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.0",
+    "pytest>=9.1.1",
+    "ruff (>=0.16.3)",
+]
+
+[project.scripts]
+doc-unlock = "doc_unlock.interface.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.12.4,<0.13"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "single"
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+preview = true
+select = [
+    "ASYNC",  # flake8-async
+    "BLE",    # flake8-blind-except
+    "C90",    # mccabe
+    "E",      # pycodestyle Error
+    "ERA",    # eradicate
+    "F",      # Pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "PL",     # Pylint
+    "Q",      # flake8-quotes
+    "S",      # flake8-bandit
+    "T20",    # flake8-print
+    "TC",     # flake8-type-checking
+    "TRY",    # tryceratops
+    "UP",     # pyupgrade
+    "W",      # pycodestyle Warning
+    "YTT",    # flake8-2020
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.14"
+platform = "linux"
+follow_imports = "normal"
+ignore_missing_imports = false
+strict = true
+enable_error_code = "explicit-override"
+
+[[tool.mypy.overrides]]
+module = "msoffcrypto"
+ignore_missing_imports = true
