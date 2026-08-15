@@ -77,7 +77,7 @@ Note: `DocumentRepository` is a bytes↔`Document` codec, **not** a path-based `
 ## Conventions
 
 - **No `print`.** Use `typer.echo`/`typer.secho` for user output in the interface layer, `logging` for internals.
-- **typing-only imports** go inside `if TYPE_CHECKING:`; modules use `from __future__ import annotations`.
+- **typing-only imports** go inside `if TYPE_CHECKING:` (no `from __future__ import annotations` needed on Python 3.14).
 - **Port implementations** are decorated with `@override` (mypy has `explicit-override` enabled).
 - **Domain is pure.** No filesystem/network/third-party imports in `domain/` except stdlib (`xml.etree.ElementTree`).
 - **Errors are exceptions**, not return codes or swallowed prints.
