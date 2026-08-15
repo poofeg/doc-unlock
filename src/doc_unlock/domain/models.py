@@ -20,10 +20,21 @@ class DocumentFormat(StrEnum):
     @classmethod
     def from_path(cls, path: Path) -> DocumentFormat:
         suffix = path.suffix.lower().lstrip('.')
-        try:
-            return cls(suffix)
-        except ValueError as exc:
-            raise UnsupportedFormatError(suffix) from exc
+        format = _SUFFIX_TO_FORMAT.get(suffix)
+        if format is None:
+            raise UnsupportedFormatError(suffix)
+        return format
+
+
+# PowerPoint keeps the same OOXML package across these extensions.
+_SUFFIX_TO_FORMAT: dict[str, DocumentFormat] = {
+    'pptx': DocumentFormat.PPTX,
+    'ppsx': DocumentFormat.PPTX,
+    'pptm': DocumentFormat.PPTX,
+    'ppsm': DocumentFormat.PPTX,
+    'docx': DocumentFormat.DOCX,
+    'xlsx': DocumentFormat.XLSX,
+}
 
 
 @dataclass(frozen=True)

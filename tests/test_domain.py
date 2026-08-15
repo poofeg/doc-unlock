@@ -35,6 +35,12 @@ def test_from_path_maps_known_suffixes():
     assert DocumentFormat.from_path(Path('book.xlsx')) is DocumentFormat.XLSX
 
 
+def test_from_path_maps_powerpoint_variants():
+    assert DocumentFormat.from_path(Path('deck.ppsx')) is DocumentFormat.PPTX
+    assert DocumentFormat.from_path(Path('deck.pptm')) is DocumentFormat.PPTX
+    assert DocumentFormat.from_path(Path('deck.ppsm')) is DocumentFormat.PPTX
+
+
 def test_from_path_is_case_insensitive():
     assert DocumentFormat.from_path(Path('DECK.PPTX')) is DocumentFormat.PPTX
 

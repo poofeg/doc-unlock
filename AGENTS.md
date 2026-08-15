@@ -52,7 +52,7 @@ src/doc_unlock/
 
 ### Domain vocabulary
 
-- `DocumentFormat` — `StrEnum`: `PPTX`, `DOCX`, `XLSX`; has `from_path()`.
+- `DocumentFormat` — `StrEnum`: `PPTX`, `DOCX`, `XLSX`; has `from_path()` (PowerPoint variants `.ppsx`/`.pptm`/`.ppsm` map to `PPTX`).
 - `EditProtection` — frozen value object describing where/how protection is stored (`part_name`, `namespace`, `element_names`).
 - `ProtectionRemovalService` — stateless domain service:
   - `protection_for(format) -> EditProtection` (raises `UnsupportedFormatError` for unhandled formats);
