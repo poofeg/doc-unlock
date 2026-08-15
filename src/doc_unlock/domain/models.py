@@ -27,31 +27,9 @@ class DocumentFormat(StrEnum):
 
 
 @dataclass(frozen=True)
-class PackagePart:
-    """A single part (file) inside an OOXML package."""
-
-    name: str
-    content: bytes
-
-
-@dataclass(frozen=True)
 class EditProtection:
     """Where and how edit protection is stored inside a document package."""
 
     part_name: str
     namespace: str
     element_names: tuple[str, ...]
-
-
-@dataclass
-class Document:
-    """A document aggregate: an OOXML package and its parts."""
-
-    format: DocumentFormat
-    parts: list[PackagePart]
-
-    def get_part(self, name: str) -> PackagePart | None:
-        for part in self.parts:
-            if part.name == name:
-                return part
-        return None

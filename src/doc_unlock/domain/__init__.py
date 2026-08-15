@@ -6,21 +6,19 @@ from .exceptions import (
     InvalidPasswordError,
     UnsupportedFormatError,
 )
-from .models import Document, DocumentFormat, EditProtection, PackagePart
-from .ports import Decryptor, DocumentRepository, FileStorage
+from .models import DocumentFormat, EditProtection
+from .ports import Decryptor, FileStorage, PackageTransformer
 from .services import ProtectionRemovalService
 
 __all__ = [
     'Decryptor',
-    'Document',
     'DocumentFormat',
-    'DocumentRepository',
     'DocumentUnlockError',
     'EditProtection',
     'FileStorage',
     'InvalidDocumentError',
     'InvalidPasswordError',
-    'PackagePart',
+    'PackageTransformer',
     'ProtectionRemovalService',
     'UnsupportedFormatError',
 ]

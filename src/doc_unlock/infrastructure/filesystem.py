@@ -6,14 +6,15 @@ from doc_unlock.domain.ports import FileStorage
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import BinaryIO
 
 
 class LocalFileStorage(FileStorage):
     @override
-    def read(self, path: Path) -> bytes:
-        return path.read_bytes()
+    def open_read(self, path: Path) -> BinaryIO:
+        return path.open('rb')
 
     @override
-    def write(self, path: Path, data: bytes) -> None:
+    def open_write(self, path: Path) -> BinaryIO:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        return path.open('wb')

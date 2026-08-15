@@ -70,9 +70,11 @@ The format detector recognizes DOCX and XLSX, but their edit-protection schemas 
 
 1. Read the input file.
 2. If encrypted, decrypt the package with [`msoffcrypto-tool`](https://github.com/nolze/msoffcrypto-tool).
-3. Parse the OOXML package (a ZIP archive).
-4. Remove the edit-protection elements from `ppt/presentation.xml`.
-5. Repackage and write the result.
+3. Stream the OOXML package (a ZIP archive) entry-by-entry.
+4. Remove the edit-protection elements from `ppt/presentation.xml`; copy all other entries unchanged.
+5. Write the result as a new package.
+
+The package is processed as a stream, so only the small `ppt/presentation.xml` part is loaded fully; large parts (e.g. media) are copied chunk-by-chunk.
 
 ## Project layout
 
@@ -82,7 +84,7 @@ The code follows a layered (DDD) structure, which keeps the CLI thin and makes r
 src/doc_unlock/
 ├── domain/          # entities, value objects, domain services, ports, exceptions
 ├── application/     # use cases and DTOs
-├── infrastructure/  # adapters: filesystem, msoffcrypto decryptor, OOXML codec
+├── infrastructure/  # adapters: filesystem, msoffcrypto decryptor, OOXML transformer
 └── interface/       # primary adapters: Typer CLI (FastAPI planned)
 ```
 

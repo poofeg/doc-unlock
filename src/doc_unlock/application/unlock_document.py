@@ -1,5 +1,7 @@
 """Use case: unlock a document by removing its edit protection."""
 
+import tempfile
+from contextlib import ExitStack
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -7,8 +9,9 @@ from doc_unlock.domain.models import DocumentFormat
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import BinaryIO
 
-    from doc_unlock.domain.ports import Decryptor, DocumentRepository, FileStorage
+    from doc_unlock.domain.ports import Decryptor, FileStorage, PackageTransformer
     from doc_unlock.domain.services import ProtectionRemovalService
 
     from .dto import UnlockDocumentCommand
@@ -26,25 +29,35 @@ class UnlockDocumentUseCase:
         self,
         file_storage: FileStorage,
         decryptor: Decryptor,
-        repository: DocumentRepository,
+        transformer: PackageTransformer,
         protection_service: ProtectionRemovalService,
     ) -> None:
         self._file_storage = file_storage
         self._decryptor = decryptor
-        self._repository = repository
+        self._transformer = transformer
         self._protection_service = protection_service
 
     def execute(self, command: UnlockDocumentCommand) -> UnlockDocumentResult:
         format = DocumentFormat.from_path(command.input_path)
+        protection = self._protection_service.protection_for(format)
 
-        data = self._file_storage.read(command.input_path)
-        if command.encrypted:
-            data = self._decryptor.decrypt(data, command.password)
+        with ExitStack() as stack:
+            source: BinaryIO
+            if command.encrypted:
+                source = stack.enter_context(self._file_storage.open_read(command.input_path))
+                decrypted = stack.enter_context(tempfile.TemporaryFile())
+                self._decryptor.decrypt(source, decrypted, command.password)
+                decrypted.seek(0)
+                source = decrypted
+            else:
+                source = stack.enter_context(self._file_storage.open_read(command.input_path))
 
-        document = self._repository.parse(data, format)
-        document = self._protection_service.remove(document)
-
-        output = self._repository.serialize(document)
-        self._file_storage.write(command.output_path, output)
+            destination = stack.enter_context(self._file_storage.open_write(command.output_path))
+            self._transformer.transform(
+                source,
+                destination,
+                target_part=protection.part_name,
+                transform_part=lambda content: self._protection_service.strip(content, protection),
+            )
 
         return UnlockDocumentResult(output_path=command.output_path)

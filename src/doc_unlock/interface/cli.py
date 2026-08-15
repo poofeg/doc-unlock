@@ -17,7 +17,7 @@ from doc_unlock.domain.services import ProtectionRemovalService
 from doc_unlock.infrastructure.filesystem import LocalFileStorage
 from doc_unlock.infrastructure.ooxml import (
     MsoffcryptoDecryptor,
-    OoxmlDocumentRepository,
+    ZipPackageTransformer,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def _build_use_case() -> UnlockDocumentUseCase:
     return UnlockDocumentUseCase(
         file_storage=LocalFileStorage(),
         decryptor=MsoffcryptoDecryptor(),
-        repository=OoxmlDocumentRepository(),
+        transformer=ZipPackageTransformer(),
         protection_service=ProtectionRemovalService(),
     )
 

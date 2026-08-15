@@ -28,9 +28,9 @@ Strict layered DDD. Dependencies point inward: `interface` → `application` →
 ```
 src/doc_unlock/
 ├── domain/           # pure, no I/O, no external deps
-│   ├── models.py     # Document, DocumentFormat, PackagePart, EditProtection
+│   ├── models.py     # DocumentFormat, EditProtection
 │   ├── services.py   # ProtectionRemovalService
-│   ├── ports.py      # FileStorage, Decryptor, DocumentRepository (interfaces)
+│   ├── ports.py      # FileStorage, Decryptor, PackageTransformer (interfaces)
 │   └── exceptions.py # DocumentUnlockError and subclasses
 ├── application/      # use cases + DTOs
 │   ├── dto.py        # UnlockDocumentCommand
@@ -38,27 +38,27 @@ src/doc_unlock/
 ├── infrastructure/   # adapters implementing domain ports
 │   ├── filesystem.py # LocalFileStorage
 │   └── ooxml/
-│       ├── decryptor.py   # MsoffcryptoDecryptor
-│       └── repository.py  # OoxmlDocumentRepository
+│       ├── decryptor.py    # MsoffcryptoDecryptor
+│       └── transformer.py  # ZipPackageTransformer (streaming)
 └── interface/        # primary adapters
     └── cli.py        # Typer app, `unlock` subcommand
 ```
 
 ### Ports (`domain/ports.py`)
 
-- `FileStorage.read(path) -> bytes`, `write(path, data) -> None`
-- `Decryptor.decrypt(data, password) -> bytes`
-- `DocumentRepository.parse(data, format) -> Document`, `serialize(document) -> bytes`
-
-Note: `DocumentRepository` is a bytes↔`Document` codec, **not** a path-based `load`/`save`. Decryption operates on raw bytes before parsing, so raw file I/O lives in `FileStorage`.
+- `FileStorage.open_read(path) -> BinaryIO`, `open_write(path) -> BinaryIO`
+- `Decryptor.decrypt(source, destination, password) -> None`
+- `PackageTransformer.transform(source, destination, target_part, transform_part) -> None`
 
 ### Domain vocabulary
 
-- `Document` — aggregate: a `DocumentFormat` plus a list of `PackagePart`s.
 - `DocumentFormat` — `StrEnum`: `PPTX`, `DOCX`, `XLSX`; has `from_path()`.
-- `PackagePart` — frozen value object: `name` + `content: bytes`.
 - `EditProtection` — frozen value object describing where/how protection is stored (`part_name`, `namespace`, `element_names`).
-- `ProtectionRemovalService.remove(document) -> Document` — the pure business rule.
+- `ProtectionRemovalService` — stateless domain service:
+  - `protection_for(format) -> EditProtection` (raises `UnsupportedFormatError` for unhandled formats);
+  - `strip(content, protection) -> bytes` (pure XML transform of a **single** part).
+
+There is no in-memory `Document` aggregate; the package is processed as a **stream** so it never has to be fully materialized.
 
 ### Exceptions
 
@@ -67,12 +67,14 @@ Note: `DocumentRepository` is a bytes↔`Document` codec, **not** a path-based `
 ## Request flow (`UnlockDocumentUseCase`)
 
 1. `DocumentFormat.from_path(input_path)`
-2. `FileStorage.read(input_path)`
-3. if encrypted: `Decryptor.decrypt(data, password)`
-4. `DocumentRepository.parse(data, format)`
-5. `ProtectionRemovalService.remove(document)`
-6. `DocumentRepository.serialize(document)`
-7. `FileStorage.write(output_path, data)`
+2. `ProtectionRemovalService.protection_for(format)`
+3. if encrypted: `FileStorage.open_read(input_path)` → `Decryptor.decrypt(source, temp_file, password)` (streams the source, writes decrypted data to a disk-backed temp file)
+4. else: `FileStorage.open_read(input_path)`
+5. `FileStorage.open_write(output_path)`
+6. `PackageTransformer.transform(source, destination, protection.part_name, strip)` — streams the ZIP, transforms only the target part, copies all other entries chunk-by-chunk
+7. return `UnlockDocumentResult`
+
+Memory: only `ppt/presentation.xml` (small) is held fully; large media parts are streamed. The encrypted path streams the source and writes decrypted data to a temp file, but `msoffcrypto` still buffers the whole decrypted payload internally (~4.5x input size), so streaming decryption is a deferred follow-up (contribute upstream).
 
 ## Conventions
 
@@ -115,4 +117,5 @@ The CLI is also runnable as `python -m doc_unlock` (via `__main__.py`). There is
 ## Current limitations / roadmap
 
 - Only PPTX edit-protection removal is implemented. DOCX/XLSX are recognized by `DocumentFormat.from_path` but `ProtectionRemovalService` raises `UnsupportedFormatError` for them.
+- Streaming decryption is not implemented: `msoffcrypto` buffers the decrypted package in memory. A future option is contributing streaming support upstream.
 - FastAPI interface is planned, not started.

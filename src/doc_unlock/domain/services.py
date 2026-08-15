@@ -3,7 +3,7 @@
 import xml.etree.ElementTree as ET  # noqa: S405
 
 from .exceptions import UnsupportedFormatError
-from .models import Document, DocumentFormat, EditProtection, PackagePart
+from .models import DocumentFormat, EditProtection
 
 # Mapping of format -> where edit protection lives and how to strip it.
 # Only PPTX is implemented for now; DOCX/XLSX are recognized but not yet supported.
@@ -17,26 +17,17 @@ _PROTECTION_BY_FORMAT: dict[DocumentFormat, EditProtection] = {
 
 
 class ProtectionRemovalService:
-    """Removes edit protection from a document, leaving it editable."""
-
-    def remove(self, document: Document) -> Document:
-        protection = _PROTECTION_BY_FORMAT.get(document.format)
-        if protection is None:
-            raise UnsupportedFormatError(document.format.value)
-
-        updated_parts: list[PackagePart] = []
-        for part in document.parts:
-            if part.name == protection.part_name:
-                content = self._strip_protection(part.content, protection)
-                updated_parts.append(PackagePart(name=part.name, content=content))
-            else:
-                updated_parts.append(part)
-
-        document.parts = updated_parts
-        return document
+    """Knows where protection lives per format and strips it from a single XML part."""
 
     @staticmethod
-    def _strip_protection(content: bytes, protection: EditProtection) -> bytes:
+    def protection_for(format: DocumentFormat) -> EditProtection:
+        protection = _PROTECTION_BY_FORMAT.get(format)
+        if protection is None:
+            raise UnsupportedFormatError(format.value)
+        return protection
+
+    @staticmethod
+    def strip(content: bytes, protection: EditProtection) -> bytes:
         root = ET.fromstring(content)  # noqa: S314
         parent_map = {child: parent for parent in root.iter() for child in parent}
 

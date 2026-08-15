@@ -6,8 +6,7 @@ import zipfile
 import pytest
 
 from doc_unlock.domain.exceptions import InvalidDocumentError, InvalidPasswordError
-from doc_unlock.domain.models import DocumentFormat
-from doc_unlock.infrastructure.ooxml import MsoffcryptoDecryptor, OoxmlDocumentRepository
+from doc_unlock.infrastructure.ooxml import MsoffcryptoDecryptor, ZipPackageTransformer
 
 
 def _unpack(data: bytes) -> dict[str, bytes]:
@@ -15,40 +14,56 @@ def _unpack(data: bytes) -> dict[str, bytes]:
         return {info.filename: archive.read(info.filename) for info in archive.infolist() if not info.is_dir()}
 
 
-def test_repository_parse_serialize_round_trip():
-    repository = OoxmlDocumentRepository()
+def _strip(content: bytes) -> bytes:
+    return content.replace(b'<p:modifyVerifier/>', b'').replace(b'<p:documentProtection/>', b'')
+
+
+def test_transformer_streams_package_and_strips_target_part():
+    transformer = ZipPackageTransformer()
 
     source = io.BytesIO()
     with zipfile.ZipFile(source, 'w') as archive:
         archive.writestr('[Content_Types].xml', b'<Types/>')
-        archive.writestr('ppt/presentation.xml', b'<p:presentation/>')
+        archive.writestr(
+            'ppt/presentation.xml',
+            b'<p:presentation><p:modifyVerifier/><p:documentProtection/></p:presentation>',
+        )
+        archive.writestr('ppt/media/image1.png', b'x' * 1000)
 
-    document = repository.parse(source.getvalue(), DocumentFormat.PPTX)
-    serialized = repository.serialize(document)
+    destination = io.BytesIO()
+    transformer.transform(
+        source,
+        destination,
+        target_part='ppt/presentation.xml',
+        transform_part=_strip,
+    )
 
-    assert _unpack(serialized) == {
-        '[Content_Types].xml': b'<Types/>',
-        'ppt/presentation.xml': b'<p:presentation/>',
-    }
+    parts = _unpack(destination.getvalue())
+    assert b'modifyVerifier' not in parts['ppt/presentation.xml']
+    assert b'documentProtection' not in parts['ppt/presentation.xml']
+    assert parts['[Content_Types].xml'] == b'<Types/>'
+    assert parts['ppt/media/image1.png'] == b'x' * 1000
 
 
 def test_decryptor_decrypts_encrypted_document(only_encrypted_pptx, encryption_password):
     decryptor = MsoffcryptoDecryptor()
+    source = io.BytesIO(only_encrypted_pptx.read_bytes())
+    destination = io.BytesIO()
 
-    decrypted = decryptor.decrypt(only_encrypted_pptx.read_bytes(), encryption_password)
+    decryptor.decrypt(source, destination, encryption_password)
 
-    assert 'ppt/presentation.xml' in _unpack(decrypted)
+    assert 'ppt/presentation.xml' in _unpack(destination.getvalue())
 
 
 def test_decryptor_wrong_password_raises(only_encrypted_pptx):
     decryptor = MsoffcryptoDecryptor()
 
     with pytest.raises(InvalidPasswordError):
-        decryptor.decrypt(only_encrypted_pptx.read_bytes(), 'wrong-password')
+        decryptor.decrypt(io.BytesIO(only_encrypted_pptx.read_bytes()), io.BytesIO(), 'wrong-password')
 
 
 def test_decryptor_rejects_plain_document(plain_pptx, encryption_password):
     decryptor = MsoffcryptoDecryptor()
 
     with pytest.raises(InvalidDocumentError):
-        decryptor.decrypt(plain_pptx.read_bytes(), encryption_password)
+        decryptor.decrypt(io.BytesIO(plain_pptx.read_bytes()), io.BytesIO(), encryption_password)

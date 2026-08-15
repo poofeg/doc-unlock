@@ -1,6 +1,6 @@
-"""OOXML infrastructure: decryptor and repository."""
+"""OOXML infrastructure: decryptor and package transformer."""
 
 from .decryptor import MsoffcryptoDecryptor
-from .repository import OoxmlDocumentRepository
+from .transformer import ZipPackageTransformer
 
-__all__ = ['MsoffcryptoDecryptor', 'OoxmlDocumentRepository']
+__all__ = ['MsoffcryptoDecryptor', 'ZipPackageTransformer']
