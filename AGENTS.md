@@ -54,7 +54,7 @@ src/doc_unlock/
 
 ### Domain vocabulary
 
-- `DocumentFormat` — `StrEnum`: `PPTX`, `DOCX`, `XLSX`; `from_path()`, `from_filename()`, `from_suffix()` (PowerPoint variants `.ppsx`/`.pptm`/`.ppsm` map to `PPTX`).
+- `DocumentFormat` — `StrEnum`: `PPTX`, `DOCX`, `XLSX`; `from_path()`, `from_filename()`, `from_suffix()`. Supported suffixes: `.pptx`/`.ppsx`/`.pptm`/`.ppsm`/`.potx`/`.potm` → PPTX; `.docx`/`.docm`/`.dotx`/`.dotm` → DOCX; `.xlsx`/`.xlsm`/`.xltx`/`.xltm` → XLSX. Binary/legacy formats (`.doc`, `.xls`, `.ppt`, `.xlsb`) and add-ins (`.xlam`, `.ppam`) are intentionally unsupported.
 - `EditProtection` — frozen value object describing where/how protection is stored (`part_name`, `namespace`, `element_names`).
 - `ProtectionRemovalService` — stateless domain service:
   - `protection_for(format) -> EditProtection` (maps `PPTX`, `DOCX`, `XLSX` to their protection location);

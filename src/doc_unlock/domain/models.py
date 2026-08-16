@@ -34,14 +34,24 @@ class DocumentFormat(StrEnum):
         return format
 
 
-# PowerPoint keeps the same OOXML package across these extensions.
+# Each family shares one OOXML package layout, so these extensions differ only by name.
+# Binary/legacy formats (`.doc`, `.xls`, `.ppt`, `.xlsb`) and add-ins (`.xlam`, `.ppam`) are
+# intentionally absent: their protection is not stored as the same XML parts.
 _SUFFIX_TO_FORMAT: dict[str, DocumentFormat] = {
     'pptx': DocumentFormat.PPTX,
     'ppsx': DocumentFormat.PPTX,
     'pptm': DocumentFormat.PPTX,
     'ppsm': DocumentFormat.PPTX,
+    'potx': DocumentFormat.PPTX,
+    'potm': DocumentFormat.PPTX,
     'docx': DocumentFormat.DOCX,
+    'docm': DocumentFormat.DOCX,
+    'dotx': DocumentFormat.DOCX,
+    'dotm': DocumentFormat.DOCX,
     'xlsx': DocumentFormat.XLSX,
+    'xlsm': DocumentFormat.XLSX,
+    'xltx': DocumentFormat.XLSX,
+    'xltm': DocumentFormat.XLSX,
 }
 
 

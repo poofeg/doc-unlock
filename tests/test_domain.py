@@ -80,6 +80,38 @@ def test_from_filename_without_suffix_raises():
         DocumentFormat.from_filename('no_suffix')
 
 
+@pytest.mark.parametrize(
+    ('suffix', 'expected'),
+    [
+        ('pptx', DocumentFormat.PPTX),
+        ('ppsx', DocumentFormat.PPTX),
+        ('pptm', DocumentFormat.PPTX),
+        ('ppsm', DocumentFormat.PPTX),
+        ('potx', DocumentFormat.PPTX),
+        ('potm', DocumentFormat.PPTX),
+        ('docx', DocumentFormat.DOCX),
+        ('docm', DocumentFormat.DOCX),
+        ('dotx', DocumentFormat.DOCX),
+        ('dotm', DocumentFormat.DOCX),
+        ('xlsx', DocumentFormat.XLSX),
+        ('xlsm', DocumentFormat.XLSX),
+        ('xltx', DocumentFormat.XLSX),
+        ('xltm', DocumentFormat.XLSX),
+    ],
+)
+def test_supported_suffixes_map_to_format(suffix, expected):
+    assert DocumentFormat.from_suffix(suffix) is expected
+    assert DocumentFormat.from_suffix(f'.{suffix}') is expected
+    assert DocumentFormat.from_filename(f'document.{suffix}') is expected
+    assert DocumentFormat.from_path(Path(f'document.{suffix}')) is expected
+
+
+@pytest.mark.parametrize('suffix', ['xlsb', 'doc', 'dot', 'xls', 'xlt', 'ppt', 'pps', 'pot', 'xlam', 'ppam'])
+def test_unsupported_binary_and_addin_suffixes_raise(suffix):
+    with pytest.raises(UnsupportedFormatError):
+        DocumentFormat.from_suffix(suffix)
+
+
 def test_protection_for_returns_pptx_protection():
     protection = ProtectionRemovalService.protection_for(DocumentFormat.PPTX)
 

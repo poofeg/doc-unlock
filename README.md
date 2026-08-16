@@ -1,11 +1,11 @@
 # doc-unlock
 
-Remove edit protection from Microsoft Office (OOXML) documents — currently PowerPoint (`.pptx`).
+Remove edit protection from Microsoft Office (OOXML) documents — PowerPoint, Word, and Excel.
 
 `doc-unlock` is a command-line utility that removes the restrictions preventing you from editing a document. It handles two independent mechanisms:
 
 - **Document encryption** — the encrypted OOXML package is decrypted using the password.
-- **Edit protection** — the `modifyVerifier` / `documentProtection` elements are stripped from the presentation XML.
+- **Edit protection** — the per-format protection elements are stripped from the relevant package part (see [Supported formats](#supported-formats)).
 
 A file can be encrypted, edit-protected, both, or neither.
 
@@ -90,23 +90,25 @@ curl -F "file=@deck.pptx" -F "password=111" http://localhost:8000/unlock -o "dec
 
 ## Supported formats
 
-| Format | Decryption | Edit-protection removal |
-| --- | --- | --- |
-| PPTX | ✅ | ✅ |
-| DOCX | ✅ | ✅ |
-| XLSX | ✅ | ✅ |
+| Format | Extensions | Decryption | Edit-protection removal |
+| --- | --- | --- | --- |
+| PowerPoint | `.pptx`, `.ppsx`, `.pptm`, `.ppsm`, `.potx`, `.potm` | ✅ | ✅ |
+| Word | `.docx`, `.docm`, `.dotx`, `.dotm` | ✅ | ✅ |
+| Excel | `.xlsx`, `.xlsm`, `.xltx`, `.xltm` | ✅ | ✅ |
 
-Edit protection is removed from the relevant package part: `ppt/presentation.xml` (PPTX), `word/settings.xml` (DOCX), and `xl/workbook.xml` (XLSX).
+Edit protection is removed from the relevant package part: `ppt/presentation.xml` (PowerPoint), `word/settings.xml` (Word), and `xl/workbook.xml` (Excel).
+
+Not supported: legacy binary formats (`.doc`, `.xls`, `.ppt`, …) and Excel binary workbooks (`.xlsb`), whose protection is not stored as these XML parts.
 
 ## How it works
 
 1. Read the input file.
 2. If encrypted, decrypt the package with [`msoffcrypto-tool`](https://github.com/nolze/msoffcrypto-tool).
 3. Stream the OOXML package (a ZIP archive) entry-by-entry.
-4. Remove the edit-protection elements from `ppt/presentation.xml`; copy all other entries unchanged.
+4. Remove the edit-protection elements from the relevant XML part; copy all other entries unchanged.
 5. Write the result as a new package.
 
-The package is processed as a stream, so only the small `ppt/presentation.xml` part is loaded fully; large parts (e.g. media) are copied chunk-by-chunk.
+The package is processed as a stream, so only the small target XML part is loaded fully; large parts (e.g. media) are copied chunk-by-chunk.
 
 ## Project layout
 
