@@ -93,10 +93,10 @@ curl -F "file=@deck.pptx" -F "password=111" http://localhost:8000/unlock -o "dec
 | Format | Decryption | Edit-protection removal |
 | --- | --- | --- |
 | PPTX | ✅ | ✅ |
-| DOCX | planned | planned |
-| XLSX | planned | planned |
+| DOCX | ✅ | ✅ |
+| XLSX | ✅ | ✅ |
 
-The format detector recognizes DOCX and XLSX, but their edit-protection schemas are not implemented yet — attempting to unlock them raises `UnsupportedFormatError`.
+Edit protection is removed from the relevant package part: `ppt/presentation.xml` (PPTX), `word/settings.xml` (DOCX), and `xl/workbook.xml` (XLSX).
 
 ## How it works
 

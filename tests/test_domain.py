@@ -13,7 +13,7 @@ PRESENTATION_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main'
 PROTECTION = EditProtection(
     part_name='ppt/presentation.xml',
     namespace=PRESENTATION_NS,
-    element_names=('modifyVerifier', 'documentProtection'),
+    element_names=('modifyVerifier',),
 )
 
 
@@ -23,7 +23,6 @@ def _presentation_with_protection() -> bytes:
         f'<p:presentation xmlns:p="{PRESENTATION_NS}">'
         '<p:sldMasterIdLst/>'
         '<p:modifyVerifier cryptProviderType="rsaAES"/>'
-        '<p:documentProtection/>'
         '<p:notesMasterIdLst/>'
         '</p:presentation>'
     ).encode()
@@ -85,18 +84,73 @@ def test_protection_for_returns_pptx_protection():
     protection = ProtectionRemovalService.protection_for(DocumentFormat.PPTX)
 
     assert protection.part_name == 'ppt/presentation.xml'
-    assert protection.element_names == ('modifyVerifier', 'documentProtection')
+    assert protection.element_names == ('modifyVerifier',)
 
 
-def test_protection_for_unsupported_format_raises():
-    with pytest.raises(UnsupportedFormatError):
-        ProtectionRemovalService.protection_for(DocumentFormat.DOCX)
+def test_protection_for_returns_docx_protection():
+    protection = ProtectionRemovalService.protection_for(DocumentFormat.DOCX)
+
+    assert protection.part_name == 'word/settings.xml'
+    assert protection.element_names == ('writeProtection', 'documentProtection')
+
+
+def test_protection_for_returns_xlsx_protection():
+    protection = ProtectionRemovalService.protection_for(DocumentFormat.XLSX)
+
+    assert protection.part_name == 'xl/workbook.xml'
+    assert protection.element_names == ('fileSharing', 'workbookProtection')
 
 
 def test_strip_removes_protection_elements():
     stripped = ProtectionRemovalService.strip(_presentation_with_protection(), PROTECTION)
 
     assert b'modifyVerifier' not in stripped
-    assert b'documentProtection' not in stripped
     assert b'sldMasterIdLst' in stripped
     assert b'notesMasterIdLst' in stripped
+
+
+def test_strip_preserves_namespace_prefixes():
+    content = (
+        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        b'<w:settings xmlns:w="http://word" xmlns:mc="http://mc" mc:Ignorable="w14">'
+        b'<w:writeProtection/>'
+        b'<w:zoom/>'
+        b'</w:settings>'
+    )
+    protection = EditProtection(
+        part_name='word/settings.xml',
+        namespace='http://word',
+        element_names=('writeProtection',),
+    )
+
+    stripped = ProtectionRemovalService.strip(content, protection)
+
+    assert b'xmlns:w="http://word"' in stripped
+    assert b'mc:Ignorable="w14"' in stripped
+    assert b'ns0' not in stripped
+    assert b'writeProtection' not in stripped
+
+
+def test_strip_preserves_unused_namespace_declarations():
+    # DOCX settings.xml declares prefixes (e.g. r, w14) referenced only by
+    # mc:Ignorable. ElementTree drops those unused declarations and corrupts the
+    # file; lxml must keep them.
+    content = (
+        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        b'<w:settings xmlns:w="http://word" xmlns:r="http://relationships" '
+        b'xmlns:mc="http://mc" mc:Ignorable="w14 r">'
+        b'<w:writeProtection/>'
+        b'<w:zoom/>'
+        b'</w:settings>'
+    )
+    protection = EditProtection(
+        part_name='word/settings.xml',
+        namespace='http://word',
+        element_names=('writeProtection',),
+    )
+
+    stripped = ProtectionRemovalService.strip(content, protection)
+
+    assert b'xmlns:r="http://relationships"' in stripped
+    assert b'mc:Ignorable="w14 r"' in stripped
+    assert b'writeProtection' not in stripped

@@ -35,7 +35,6 @@ def test_unlock_only_locked_removes_protection(use_case, only_locked_pptx):
 
     assert set(output_parts) == set(input_parts)
     assert b'modifyVerifier' not in output_parts['ppt/presentation.xml']
-    assert b'documentProtection' not in output_parts['ppt/presentation.xml']
 
     for name, content in input_parts.items():
         if name != 'ppt/presentation.xml':
@@ -49,7 +48,6 @@ def test_unlock_encrypted_and_locked(use_case, encrypted_and_locked_pptx, encryp
 
     assert 'ppt/presentation.xml' in output_parts
     assert b'modifyVerifier' not in output_parts['ppt/presentation.xml']
-    assert b'documentProtection' not in output_parts['ppt/presentation.xml']
 
 
 def test_unlock_only_encrypted_decrypts(use_case, only_encrypted_pptx, encryption_password):
@@ -59,7 +57,6 @@ def test_unlock_only_encrypted_decrypts(use_case, only_encrypted_pptx, encryptio
 
     assert 'ppt/presentation.xml' in output_parts
     assert b'modifyVerifier' not in output_parts['ppt/presentation.xml']
-    assert b'documentProtection' not in output_parts['ppt/presentation.xml']
 
 
 def test_unlock_plain_has_no_protection(use_case, plain_pptx):
@@ -70,7 +67,6 @@ def test_unlock_plain_has_no_protection(use_case, plain_pptx):
 
     assert set(output_parts) == set(input_parts)
     assert b'modifyVerifier' not in output_parts['ppt/presentation.xml']
-    assert b'documentProtection' not in output_parts['ppt/presentation.xml']
 
 
 def test_unlock_plain_with_password_ignores_password(use_case, plain_pptx, encryption_password):
@@ -81,9 +77,58 @@ def test_unlock_plain_with_password_ignores_password(use_case, plain_pptx, encry
 
     assert set(output_parts) == set(input_parts)
     assert b'modifyVerifier' not in output_parts['ppt/presentation.xml']
-    assert b'documentProtection' not in output_parts['ppt/presentation.xml']
 
 
 def test_unlock_encrypted_without_password_raises(use_case, only_encrypted_pptx):
     with pytest.raises(PasswordRequiredError):
         _execute(use_case, only_encrypted_pptx)
+
+
+def test_unlock_only_locked_docx_removes_protection(use_case, only_locked_docx):
+    output = _execute(use_case, only_locked_docx)
+
+    input_parts = _unpack(only_locked_docx.read_bytes())
+    output_parts = _unpack(output)
+
+    assert set(output_parts) == set(input_parts)
+    assert b'writeProtection' not in output_parts['word/settings.xml']
+    assert b'documentProtection' not in output_parts['word/settings.xml']
+
+    for name, content in input_parts.items():
+        if name != 'word/settings.xml':
+            assert output_parts[name] == content
+
+
+def test_unlock_only_locked_xlsx_removes_protection(use_case, only_locked_xlsx):
+    output = _execute(use_case, only_locked_xlsx)
+
+    input_parts = _unpack(only_locked_xlsx.read_bytes())
+    output_parts = _unpack(output)
+
+    assert set(output_parts) == set(input_parts)
+    assert b'fileSharing' not in output_parts['xl/workbook.xml']
+    assert b'workbookProtection' not in output_parts['xl/workbook.xml']
+
+    for name, content in input_parts.items():
+        if name != 'xl/workbook.xml':
+            assert output_parts[name] == content
+
+
+def test_unlock_encrypted_and_locked_docx(use_case, encrypted_and_locked_docx, encryption_password):
+    output = _execute(use_case, encrypted_and_locked_docx, password=encryption_password)
+
+    output_parts = _unpack(output)
+
+    assert 'word/settings.xml' in output_parts
+    assert b'writeProtection' not in output_parts['word/settings.xml']
+    assert b'documentProtection' not in output_parts['word/settings.xml']
+
+
+def test_unlock_encrypted_and_locked_xlsx(use_case, encrypted_and_locked_xlsx, encryption_password):
+    output = _execute(use_case, encrypted_and_locked_xlsx, password=encryption_password)
+
+    output_parts = _unpack(output)
+
+    assert 'xl/workbook.xml' in output_parts
+    assert b'fileSharing' not in output_parts['xl/workbook.xml']
+    assert b'workbookProtection' not in output_parts['xl/workbook.xml']

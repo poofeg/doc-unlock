@@ -1,17 +1,26 @@
 """Domain services: pure business logic."""
 
-import xml.etree.ElementTree as ET  # noqa: S405
+from lxml import etree  # noqa: S410
 
 from .exceptions import UnsupportedFormatError
 from .models import DocumentFormat, EditProtection
 
 # Mapping of format -> where edit protection lives and how to strip it.
-# Only PPTX is implemented for now; DOCX/XLSX are recognized but not yet supported.
 _PROTECTION_BY_FORMAT: dict[DocumentFormat, EditProtection] = {
     DocumentFormat.PPTX: EditProtection(
         part_name='ppt/presentation.xml',
         namespace='http://schemas.openxmlformats.org/presentationml/2006/main',
-        element_names=('modifyVerifier', 'documentProtection'),
+        element_names=('modifyVerifier',),
+    ),
+    DocumentFormat.DOCX: EditProtection(
+        part_name='word/settings.xml',
+        namespace='http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+        element_names=('writeProtection', 'documentProtection'),
+    ),
+    DocumentFormat.XLSX: EditProtection(
+        part_name='xl/workbook.xml',
+        namespace='http://schemas.openxmlformats.org/spreadsheetml/2006/main',
+        element_names=('fileSharing', 'workbookProtection'),
     ),
 }
 
@@ -28,15 +37,16 @@ class ProtectionRemovalService:
 
     @staticmethod
     def strip(content: bytes, protection: EditProtection) -> bytes:
-        root = ET.fromstring(content)  # noqa: S314
-        parent_map = {child: parent for parent in root.iter() for child in parent}
+        # Disable entity resolution and network access when parsing untrusted parts.
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        root = etree.fromstring(content, parser)
 
         for element_name in protection.element_names:
             tag = f'{{{protection.namespace}}}{element_name}'
             for element in root.findall(f'.//{tag}'):
-                parent = parent_map.get(element)
+                parent = element.getparent()
                 if parent is not None:
                     parent.remove(element)
 
-        result: bytes = ET.tostring(root, encoding='UTF-8', xml_declaration=True)
+        result: bytes = etree.tostring(root, encoding='UTF-8', xml_declaration=True)
         return result
