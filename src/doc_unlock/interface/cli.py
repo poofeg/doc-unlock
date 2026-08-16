@@ -64,7 +64,7 @@ def unlock(
         typer.Option(
             '--password',
             '-p',
-            help='Password used to decrypt an encrypted document.',
+            help='Password used to decrypt an encrypted document. Omit if the file is not encrypted.',
         ),
     ] = None,
     output: Annotated[
@@ -75,20 +75,12 @@ def unlock(
             help="Where to save the unlocked document. Defaults to '<name> (unprotected).<ext>'.",
         ),
     ] = None,
-    encrypted: Annotated[
-        bool,
-        typer.Option(
-            '--encrypted/--no-encrypted',
-            help='Whether the document is encrypted (default: encrypted).',
-        ),
-    ] = True,
 ) -> None:
     """Remove edit protection from a Microsoft Office document."""
     command = UnlockDocumentCommand(
         input_path=input_path,
         output_path=output or _default_output_path(input_path),
-        password=password or '',
-        encrypted=encrypted,
+        password=password,
     )
 
     try:

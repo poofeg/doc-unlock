@@ -18,7 +18,7 @@ def _unpack(data: bytes) -> dict[str, bytes]:
 def test_unlock_command_locked_file(only_locked_pptx, tmp_path):
     output = tmp_path / 'out.pptx'
 
-    result = runner.invoke(app, ['unlock', str(only_locked_pptx), '--no-encrypted', '-o', str(output)])
+    result = runner.invoke(app, ['unlock', str(only_locked_pptx), '-o', str(output)])
 
     assert result.exit_code == 0
     assert output.exists()
@@ -48,7 +48,7 @@ def test_unlock_command_default_output_name(only_locked_pptx, tmp_path):
     source = tmp_path / 'deck.pptx'
     source.write_bytes(only_locked_pptx.read_bytes())
 
-    result = runner.invoke(app, ['unlock', str(source), '--no-encrypted'])
+    result = runner.invoke(app, ['unlock', str(source)])
 
     assert result.exit_code == 0
     assert (tmp_path / 'deck (unprotected).pptx').exists()

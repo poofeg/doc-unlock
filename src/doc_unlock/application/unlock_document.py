@@ -43,7 +43,7 @@ class UnlockDocumentUseCase:
 
         with ExitStack() as stack:
             source: IO[bytes]
-            if command.encrypted:
+            if command.password is not None:
                 source = stack.enter_context(self._file_storage.open_read(command.input_path))
                 decrypted = stack.enter_context(tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024))
                 self._decryptor.decrypt(source, decrypted, command.password)

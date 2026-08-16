@@ -11,5 +11,4 @@ if TYPE_CHECKING:
 class UnlockDocumentCommand:
     input_path: Path
     output_path: Path
-    password: str
-    encrypted: bool
+    password: str | None

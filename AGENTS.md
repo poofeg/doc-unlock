@@ -68,7 +68,7 @@ There is no in-memory `Document` aggregate; the package is processed as a **stre
 
 1. `DocumentFormat.from_path(input_path)`
 2. `ProtectionRemovalService.protection_for(format)`
-3. if encrypted: `FileStorage.open_read(input_path)` → `Decryptor.decrypt(source, temp_file, password)` (streams the source, writes decrypted data to a disk-backed temp file)
+3. if a password was provided: `FileStorage.open_read(input_path)` → `Decryptor.decrypt(source, temp_file, password)` (streams the source, writes decrypted data to a disk-backed temp file)
 4. else: `FileStorage.open_read(input_path)`
 5. `FileStorage.open_write(output_path)`
 6. `PackageTransformer.transform(source, destination, protection.part_name, strip)` — streams the ZIP, transforms only the target part, copies all other entries chunk-by-chunk

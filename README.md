@@ -24,7 +24,7 @@ This installs the runtime dependencies and the `doc-unlock` command into the pro
 ## Usage
 
 ```
-doc-unlock unlock INPUT [--password PASSWORD] [--output OUTPUT] [--encrypted/--no-encrypted]
+doc-unlock unlock INPUT [--password PASSWORD] [--output OUTPUT]
 ```
 
 | Argument / option | Description |
@@ -32,7 +32,6 @@ doc-unlock unlock INPUT [--password PASSWORD] [--output OUTPUT] [--encrypted/--n
 | `INPUT` | Path to the document to unlock (required). |
 | `-p`, `--password` | Password used to decrypt an encrypted document. |
 | `-o`, `--output` | Where to save the result. Defaults to `<name> (unprotected).<ext>` next to the input. |
-| `--encrypted` / `--no-encrypted` | Whether the file is encrypted. Defaults to `--encrypted`. |
 
 The tool can also be run as a module: `python -m doc_unlock …`.
 
@@ -41,7 +40,7 @@ The tool can also be run as a module: `python -m doc_unlock …`.
 Remove edit protection from a file that is **not** encrypted:
 
 ```bash
-doc-unlock unlock deck.pptx --no-encrypted
+doc-unlock unlock deck.pptx
 ```
 
 Decrypt an encrypted file (and remove edit protection too, if present):
@@ -53,7 +52,7 @@ doc-unlock unlock secret.pptx --password 111
 Save to a specific location:
 
 ```bash
-doc-unlock unlock deck.pptx --no-encrypted -o out/deck.pptx
+doc-unlock unlock deck.pptx -o out/deck.pptx
 ```
 
 ## Supported formats
