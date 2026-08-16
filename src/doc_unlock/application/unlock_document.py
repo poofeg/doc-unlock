@@ -9,7 +9,7 @@ from doc_unlock.domain.models import DocumentFormat
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import BinaryIO
+    from typing import IO
 
     from doc_unlock.domain.ports import Decryptor, FileStorage, PackageTransformer
     from doc_unlock.domain.services import ProtectionRemovalService
@@ -42,10 +42,10 @@ class UnlockDocumentUseCase:
         protection = self._protection_service.protection_for(format)
 
         with ExitStack() as stack:
-            source: BinaryIO
+            source: IO[bytes]
             if command.encrypted:
                 source = stack.enter_context(self._file_storage.open_read(command.input_path))
-                decrypted = stack.enter_context(tempfile.TemporaryFile())
+                decrypted = stack.enter_context(tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024))
                 self._decryptor.decrypt(source, decrypted, command.password)
                 decrypted.seek(0)
                 source = decrypted

@@ -10,13 +10,16 @@ readme = "README.md"
 requires-python = ">=3.14,<4.0"
 dependencies = [
     "msoffcrypto-tool (>=6.0.0,<7.0.0)",
+    "olefile (>=0.46)",
     "typer (>=0.27.1,<0.28.0)",
 ]
 
-# Temporary: use the fork with streaming decryption until the upstream PR is merged.
-# https://github.com/nolze/msoffcrypto-tool/pull/102
+# Temporary forks for memory fixes, pending upstream merges.
+# msoffcrypto-tool: https://github.com/nolze/msoffcrypto-tool/pull/102
+# olefile: https://github.com/decalage2/olefile/pull/177
 [tool.uv.sources]
 msoffcrypto-tool = { git = "https://github.com/poofeg/msoffcrypto-tool.git" }
+olefile = { git = "https://github.com/poofeg/olefile.git" }
 
 [dependency-groups]
 dev = [

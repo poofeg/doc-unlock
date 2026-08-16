@@ -8,7 +8,7 @@ from doc_unlock.domain.ports import PackageTransformer
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import BinaryIO
+    from typing import IO
 
 
 class ZipPackageTransformer(PackageTransformer):
@@ -17,8 +17,8 @@ class ZipPackageTransformer(PackageTransformer):
     @override
     def transform(
         self,
-        source: BinaryIO,
-        destination: BinaryIO,
+        source: IO[bytes],
+        destination: IO[bytes],
         target_part: str,
         transform_part: Callable[[bytes], bytes],
     ) -> None:

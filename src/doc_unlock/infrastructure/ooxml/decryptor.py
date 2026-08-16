@@ -8,12 +8,12 @@ from doc_unlock.domain.exceptions import InvalidDocumentError, InvalidPasswordEr
 from doc_unlock.domain.ports import Decryptor
 
 if TYPE_CHECKING:
-    from typing import BinaryIO
+    from typing import IO
 
 
 class MsoffcryptoDecryptor(Decryptor):
     @override
-    def decrypt(self, source: BinaryIO, destination: BinaryIO, password: str) -> None:
+    def decrypt(self, source: IO[bytes], destination: IO[bytes], password: str) -> None:
         try:
             office_file = msoffcrypto.OfficeFile(source)
         except (msoffcrypto.exceptions.FileFormatError, msoffcrypto.exceptions.ParseError) as exc:
