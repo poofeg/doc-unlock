@@ -11,6 +11,10 @@ A file can be encrypted, edit-protected, both, or neither.
 
 > Use this only on files you own or are otherwise authorized to modify.
 
+## Live instance
+
+A public instance is available at [doc-unlock.poofeg.ru](https://doc-unlock.poofeg.ru).
+
 ## Installation
 
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).
@@ -128,15 +132,17 @@ uv run mypy src                # type-check
 
 ## Docker
 
-Build the image:
+A prebuilt image is published to Docker Hub at [poofeg/doc-unlock](https://hub.docker.com/r/poofeg/doc-unlock):
+
+```bash
+docker pull poofeg/doc-unlock
+docker run --rm -p 8080:8080 poofeg/doc-unlock
+```
+
+To build the image locally instead:
 
 ```bash
 docker build -t doc-unlock .
-```
-
-Run it:
-
-```bash
 docker run --rm -p 8080:8080 doc-unlock
 ```
 
