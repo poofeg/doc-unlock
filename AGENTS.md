@@ -49,7 +49,7 @@ src/doc_unlock/
 ### Ports (`domain/ports.py`)
 
 - `FileStorage.open_read(path) -> IO[bytes]`, `open_write(path) -> IO[bytes]` (used by the CLI adapter)
-- `Decryptor.decrypt(source, destination, password) -> None`
+- `Decryptor.decrypt(source, destination, password) -> None`, `Decryptor.is_encrypted(source) -> bool`
 - `PackageTransformer.transform(source, destination, target_part, transform_part) -> None`
 
 ### Domain vocabulary
@@ -64,7 +64,7 @@ There is no in-memory `Document` aggregate; the package is processed as a **stre
 
 ### Exceptions
 
-`DocumentUnlockError` (base) → `UnsupportedFormatError`, `InvalidPasswordError`, `InvalidDocumentError`. Domain code raises these; the CLI catches them and returns exit code 1, and the HTTP adapter maps them to status codes (400/415/422).
+`DocumentUnlockError` (base) → `UnsupportedFormatError`, `InvalidPasswordError`, `PasswordRequiredError`, `InvalidDocumentError`. Domain code raises these; the CLI catches them and returns exit code 1, and the HTTP adapter maps them to status codes (400/415/422).
 
 ## Request flow (`UnlockDocumentUseCase`)
 
@@ -72,8 +72,10 @@ The use case operates on **open streams** supplied by the caller:
 
 1. `DocumentFormat.from_filename(command.filename)`
 2. `ProtectionRemovalService.protection_for(format)`
-3. if a password was provided: `Decryptor.decrypt(command.source, temp_file, password)` (streams the source, writes decrypted data to a disk-backed `SpooledTemporaryFile`)
-4. `PackageTransformer.transform(source, command.destination(), protection.part_name, strip)` — streams the ZIP, transforms only the target part, copies all other entries chunk-by-chunk
+3. `Decryptor.is_encrypted(command.source)` — probe the source header once
+4. if encrypted and no password: raise `PasswordRequiredError`
+5. if encrypted: `Decryptor.decrypt(command.source, temp_file, password)` (streams the source, writes decrypted data to a disk-backed `SpooledTemporaryFile`); otherwise the password is ignored and the plain source is used directly
+6. `PackageTransformer.transform(source, command.destination(), protection.part_name, strip)` — streams the ZIP, transforms only the target part, copies all other entries chunk-by-chunk
 
 `command.destination` is a lazy callable returning the output stream; it is invoked only after the source has been validated/decrypted, so a failed run never creates an output file. The caller (CLI or HTTP) owns and closes the source/destination streams.
 

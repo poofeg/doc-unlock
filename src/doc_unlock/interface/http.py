@@ -14,6 +14,7 @@ from doc_unlock.domain.exceptions import (
     DocumentUnlockError,
     InvalidDocumentError,
     InvalidPasswordError,
+    PasswordRequiredError,
     UnsupportedFormatError,
 )
 from doc_unlock.domain.services import ProtectionRemovalService
@@ -30,6 +31,7 @@ _MEDIA_TYPES = {
 
 _ERROR_STATUS: dict[type[DocumentUnlockError], int] = {
     InvalidPasswordError: 400,
+    PasswordRequiredError: 400,
     UnsupportedFormatError: 415,
     InvalidDocumentError: 422,
 }

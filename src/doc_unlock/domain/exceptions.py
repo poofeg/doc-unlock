@@ -21,8 +21,15 @@ class InvalidPasswordError(DocumentUnlockError):
         super().__init__('Invalid password or unsupported encryption')
 
 
-class InvalidDocumentError(DocumentUnlockError):
-    """Raised when the file is not a valid encrypted Office document."""
+class PasswordRequiredError(DocumentUnlockError):
+    """Raised when the document is encrypted and no password was provided."""
 
     def __init__(self) -> None:
-        super().__init__('The file is not a valid encrypted Office document')
+        super().__init__('This document is encrypted and requires a password')
+
+
+class InvalidDocumentError(DocumentUnlockError):
+    """Raised when the file is not a valid Office document."""
+
+    def __init__(self, message: str = 'The file is not a valid Office document') -> None:
+        super().__init__(message)

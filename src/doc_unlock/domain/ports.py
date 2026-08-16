@@ -25,6 +25,9 @@ class Decryptor(ABC):
     @abstractmethod
     def decrypt(self, source: IO[bytes], destination: IO[bytes], password: str) -> None: ...
 
+    @abstractmethod
+    def is_encrypted(self, source: IO[bytes]) -> bool: ...
+
 
 class PackageTransformer(ABC):
     """Streams an OOXML package, transforming a single target part."""

@@ -27,3 +27,12 @@ class MsoffcryptoDecryptor(Decryptor):
             office_file.decrypt(destination)
         except (msoffcrypto.exceptions.InvalidKeyError, msoffcrypto.exceptions.DecryptionError) as exc:
             raise InvalidPasswordError() from exc
+
+    @override
+    def is_encrypted(self, source: IO[bytes]) -> bool:
+        try:
+            office_file = msoffcrypto.OfficeFile(source)
+        except msoffcrypto.exceptions.FileFormatError, msoffcrypto.exceptions.ParseError:
+            return False
+        result: bool = office_file.is_encrypted()
+        return result

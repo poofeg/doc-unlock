@@ -4,6 +4,7 @@ import shutil
 import zipfile
 from typing import TYPE_CHECKING, override
 
+from doc_unlock.domain.exceptions import InvalidDocumentError
 from doc_unlock.domain.ports import PackageTransformer
 
 if TYPE_CHECKING:
@@ -22,7 +23,12 @@ class ZipPackageTransformer(PackageTransformer):
         target_part: str,
         transform_part: Callable[[bytes], bytes],
     ) -> None:
-        with zipfile.ZipFile(source) as zin, zipfile.ZipFile(destination, 'w') as zout:
+        try:
+            zin = zipfile.ZipFile(source)
+        except zipfile.BadZipFile as exc:
+            raise InvalidDocumentError() from exc
+
+        with zin, zipfile.ZipFile(destination, 'w') as zout:
             for info in zin.infolist():
                 if info.is_dir():
                     continue

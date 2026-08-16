@@ -4,6 +4,7 @@ from .exceptions import (
     DocumentUnlockError,
     InvalidDocumentError,
     InvalidPasswordError,
+    PasswordRequiredError,
     UnsupportedFormatError,
 )
 from .models import DocumentFormat, EditProtection
@@ -19,6 +20,7 @@ __all__ = [
     'InvalidDocumentError',
     'InvalidPasswordError',
     'PackageTransformer',
+    'PasswordRequiredError',
     'ProtectionRemovalService',
     'UnsupportedFormatError',
 ]

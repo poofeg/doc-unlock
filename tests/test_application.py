@@ -3,7 +3,10 @@
 import io
 import zipfile
 
+import pytest
+
 from doc_unlock.application.dto import UnlockDocumentCommand
+from doc_unlock.domain.exceptions import PasswordRequiredError
 
 
 def _unpack(data: bytes) -> dict[str, bytes]:
@@ -68,3 +71,19 @@ def test_unlock_plain_has_no_protection(use_case, plain_pptx):
     assert set(output_parts) == set(input_parts)
     assert b'modifyVerifier' not in output_parts['ppt/presentation.xml']
     assert b'documentProtection' not in output_parts['ppt/presentation.xml']
+
+
+def test_unlock_plain_with_password_ignores_password(use_case, plain_pptx, encryption_password):
+    output = _execute(use_case, plain_pptx, password=encryption_password)
+
+    input_parts = _unpack(plain_pptx.read_bytes())
+    output_parts = _unpack(output)
+
+    assert set(output_parts) == set(input_parts)
+    assert b'modifyVerifier' not in output_parts['ppt/presentation.xml']
+    assert b'documentProtection' not in output_parts['ppt/presentation.xml']
+
+
+def test_unlock_encrypted_without_password_raises(use_case, only_encrypted_pptx):
+    with pytest.raises(PasswordRequiredError):
+        _execute(use_case, only_encrypted_pptx)

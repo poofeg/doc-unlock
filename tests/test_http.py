@@ -77,7 +77,7 @@ def test_unlock_unsupported_format_returns_415():
     assert response.status_code == 415
 
 
-def test_unlock_plain_file_with_password_returns_422(plain_pptx, encryption_password):
+def test_unlock_plain_file_with_password_succeeds(plain_pptx, encryption_password):
     with plain_pptx.open('rb') as f:
         response = client.post(
             '/unlock',
@@ -85,7 +85,10 @@ def test_unlock_plain_file_with_password_returns_422(plain_pptx, encryption_pass
             data={'password': encryption_password},
         )
 
-    assert response.status_code == 422
+    assert response.status_code == 200
+    parts = _unpack(response.content)
+    assert b'modifyVerifier' not in parts['ppt/presentation.xml']
+    assert b'documentProtection' not in parts['ppt/presentation.xml']
 
 
 def test_index_serves_upload_form():
@@ -94,3 +97,12 @@ def test_index_serves_upload_form():
     assert response.status_code == 200
     assert 'action="/unlock"' in response.text
     assert 'name="file"' in response.text
+    assert 'name="acknowledge"' in response.text
+    assert 'required' in response.text
+
+
+def test_unlock_encrypted_without_password_returns_400(only_encrypted_pptx):
+    with only_encrypted_pptx.open('rb') as f:
+        response = client.post('/unlock', files={'file': ('deck.pptx', f, PPTX_MEDIA_TYPE)})
+
+    assert response.status_code == 400

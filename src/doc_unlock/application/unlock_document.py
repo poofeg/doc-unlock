@@ -4,6 +4,7 @@ import tempfile
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
+from doc_unlock.domain.exceptions import PasswordRequiredError
 from doc_unlock.domain.models import DocumentFormat
 
 if TYPE_CHECKING:
@@ -33,8 +34,13 @@ class UnlockDocumentUseCase:
         protection = self._protection_service.protection_for(format)
 
         source: IO[bytes] = command.source
+        encrypted = self._decryptor.is_encrypted(source)
+        source.seek(0)
+
         with ExitStack() as stack:
-            if command.password is not None:
+            if encrypted:
+                if command.password is None:
+                    raise PasswordRequiredError()
                 decrypted = stack.enter_context(tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024))
                 self._decryptor.decrypt(source, decrypted, command.password)
                 decrypted.seek(0)

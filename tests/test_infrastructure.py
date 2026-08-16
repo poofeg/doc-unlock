@@ -67,3 +67,22 @@ def test_decryptor_rejects_plain_document(plain_pptx, encryption_password):
 
     with pytest.raises(InvalidDocumentError):
         decryptor.decrypt(io.BytesIO(plain_pptx.read_bytes()), io.BytesIO(), encryption_password)
+
+
+def test_decryptor_is_encrypted(only_encrypted_pptx, plain_pptx):
+    decryptor = MsoffcryptoDecryptor()
+
+    assert decryptor.is_encrypted(io.BytesIO(only_encrypted_pptx.read_bytes())) is True
+    assert decryptor.is_encrypted(io.BytesIO(plain_pptx.read_bytes())) is False
+
+
+def test_transformer_rejects_non_zip():
+    transformer = ZipPackageTransformer()
+
+    with pytest.raises(InvalidDocumentError):
+        transformer.transform(
+            io.BytesIO(b'not a zip archive'),
+            io.BytesIO(),
+            target_part='ppt/presentation.xml',
+            transform_part=lambda content: content,
+        )
