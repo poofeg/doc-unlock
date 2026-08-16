@@ -126,6 +126,22 @@ uv run ruff format src tests   # format
 uv run mypy src                # type-check
 ```
 
+## Docker
+
+Build the image:
+
+```bash
+docker build -t doc-unlock .
+```
+
+Run it:
+
+```bash
+docker run --rm -p 8080:8080 doc-unlock
+```
+
+The HTTP form is then available at `http://localhost:8080/`. Building requires network access to fetch the pinned `msoffcrypto-tool`/`olefile` forks and Python dependencies.
+
 ## License
 
 [MIT](LICENSE)
