@@ -1,5 +1,6 @@
 """FastAPI HTTP interface (primary adapter)."""
 
+import logging
 import tempfile
 from pathlib import Path
 from typing import Annotated
@@ -19,6 +20,9 @@ from doc_unlock.domain.exceptions import (
 )
 from doc_unlock.domain.services import ProtectionRemovalService
 from doc_unlock.infrastructure.ooxml import MsoffcryptoDecryptor, ZipPackageTransformer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title='doc-unlock', version='0.1.0')
 
@@ -78,6 +82,8 @@ def unlock(
         raise HTTPException(status_code=400, detail='Upload must include a filename')
 
     file.file.seek(0)
+    logger.info('Unlock request: filename=%s size=%d bytes', filename, file.size or 0)
+
     output = tempfile.NamedTemporaryFile(delete=False)
     command = UnlockDocumentCommand(
         source=file.file,
