@@ -74,7 +74,7 @@ There is no in-memory `Document` aggregate; the package is processed as a **stre
 6. `PackageTransformer.transform(source, destination, protection.part_name, strip)` — streams the ZIP, transforms only the target part, copies all other entries chunk-by-chunk
 7. return `UnlockDocumentResult`
 
-Memory: only `ppt/presentation.xml` (small) is held fully; large media parts are streamed. The encrypted path streams the source and writes decrypted data to a temp file, but `msoffcrypto` still buffers the whole decrypted payload internally (~4.5x input size), so streaming decryption is a deferred follow-up (contribute upstream).
+Memory: only `ppt/presentation.xml` (small) is held fully; large media parts are streamed. The encrypted path streams the source and writes decrypted data to a temp file; peak RSS is ~0.6x input size (the remaining overhead is inside `olefile`, not `msoffcrypto`).
 
 ## Conventions
 
@@ -117,5 +117,5 @@ The CLI is also runnable as `python -m doc_unlock` (via `__main__.py`). There is
 ## Current limitations / roadmap
 
 - Only PPTX edit-protection removal is implemented. DOCX/XLSX are recognized by `DocumentFormat.from_path` but `ProtectionRemovalService` raises `UnsupportedFormatError` for them.
-- Streaming decryption is not implemented: `msoffcrypto` buffers the decrypted package in memory. A future option is contributing streaming support upstream.
+- Streaming decryption is implemented in a fork of `msoffcrypto-tool` (wired via `[tool.uv.sources]`), pending upstream merge. The remaining encrypted-path memory overhead is `olefile`.
 - FastAPI interface is planned, not started.

@@ -13,6 +13,11 @@ dependencies = [
     "typer (>=0.27.1,<0.28.0)",
 ]
 
+# Temporary: use the fork with streaming decryption until the upstream PR is merged.
+# https://github.com/nolze/msoffcrypto-tool/pull/102
+[tool.uv.sources]
+msoffcrypto-tool = { git = "https://github.com/poofeg/msoffcrypto-tool.git" }
+
 [dependency-groups]
 dev = [
     "mypy>=2.3.0",

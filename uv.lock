@@ -215,7 +215,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "msoffcrypto-tool", specifier = ">=6.0.0,<7.0.0" },
+    { name = "msoffcrypto-tool", git = "https://github.com/poofeg/msoffcrypto-tool.git" },
     { name = "typer", specifier = ">=0.27.1,<0.28.0" },
 ]
 
@@ -329,14 +329,10 @@ wheels = [
 [[package]]
 name = "msoffcrypto-tool"
 version = "6.0.0"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/poofeg/msoffcrypto-tool.git#44579bbb931c4eb49f70b5a12c020c355e82a0ba" }
 dependencies = [
     { name = "cryptography" },
     { name = "olefile" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/34/6250bdddaeaae24098e45449ea362fb3555a65fba30cad0ad5630ea48d1a/msoffcrypto_tool-6.0.0.tar.gz", hash = "sha256:9a5ebc4c0096b42e5d7ebc2350afdc92dc511061e935ca188468094fdd032bbe", size = 40593, upload-time = "2026-01-12T08:59:56.73Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/85/9e359fa9279e1d6861faaf9b6f037a3226374deb20a054c3937be6992013/msoffcrypto_tool-6.0.0-py3-none-any.whl", hash = "sha256:46c394ed5d9641e802fc79bf3fb0666a53748b23fa8c4aa634ae9d30d46fe397", size = 48791, upload-time = "2026-01-12T08:59:55.394Z" },
 ]
 
 [[package]]
