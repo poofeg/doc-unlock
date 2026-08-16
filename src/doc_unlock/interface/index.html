@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>doc-unlock</title>
+</head>
+<body>
+<h1>doc-unlock</h1>
+<form action="/unlock" method="post" enctype="multipart/form-data">
+  <p>
+    <label for="file">Document</label>
+    <input id="file" name="file" type="file" required>
+  </p>
+  <p>
+    <label for="password">Password (optional)</label>
+    <input id="password" name="password" type="password" autocomplete="off">
+  </p>
+  <button type="submit">Unlock</button>
+</form>
+</body>
+</html>

@@ -14,6 +14,9 @@ dependencies = [
     "typer (>=0.27.1,<0.28.0)",
 ]
 
+[project.optional-dependencies]
+http = ["fastapi[standard] (>=0.141.1,<0.142.0)"]
+
 # Temporary forks for memory fixes, pending upstream merges.
 # msoffcrypto-tool: https://github.com/nolze/msoffcrypto-tool/pull/102
 # olefile: https://github.com/decalage2/olefile/pull/177
@@ -23,7 +26,8 @@ olefile = { git = "https://github.com/poofeg/olefile.git" }
 
 [dependency-groups]
 dev = [
-    "mypy>=2.3.0",
+    "httpx2>=2.10.0",
+    "mypy>=2.3.1",
     "pytest>=9.1.1",
     "ruff (>=0.16.3)",
 ]

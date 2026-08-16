@@ -21,6 +21,12 @@ uv sync
 
 This installs the runtime dependencies and the `doc-unlock` command into the project environment. If the environment is not active, prefix commands with `uv run` (for example, `uv run doc-unlock …`).
 
+To use the HTTP interface, also install the optional FastAPI dependency:
+
+```bash
+uv sync --extra http
+```
+
 ## Usage
 
 ```
@@ -55,6 +61,29 @@ Save to a specific location:
 doc-unlock unlock deck.pptx -o out/deck.pptx
 ```
 
+## HTTP API
+
+With the `http` extra installed, start the server with:
+
+```bash
+uv run uvicorn doc_unlock.interface.http:app
+```
+
+A minimal upload form (plain HTML, no styles or JavaScript) is served at `/`.
+
+The single synchronous endpoint is `POST /unlock`, accepting `multipart/form-data`:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `file` | file | The document to unlock (required). |
+| `password` | string | Password used to decrypt an encrypted document (optional). |
+
+It responds with the unlocked file (`Content-Disposition: attachment`). Errors map to `400` (invalid password / general), `415` (unsupported format), or `422` (invalid document).
+
+```bash
+curl -F "file=@deck.pptx" -F "password=111" http://localhost:8000/unlock -o "deck (unprotected).pptx"
+```
+
 ## Supported formats
 
 | Format | Decryption | Edit-protection removal |
@@ -77,20 +106,20 @@ The package is processed as a stream, so only the small `ppt/presentation.xml` p
 
 ## Project layout
 
-The code follows a layered (DDD) structure, which keeps the CLI thin and makes room for a future FastAPI interface:
+The code follows a layered (DDD) structure, which keeps the CLI and HTTP adapters thin:
 
 ```
 src/doc_unlock/
 ├── domain/          # entities, value objects, domain services, ports, exceptions
 ├── application/     # use cases and DTOs
 ├── infrastructure/  # adapters: filesystem, msoffcrypto decryptor, OOXML transformer
-└── interface/       # primary adapters: Typer CLI (FastAPI planned)
+└── interface/       # primary adapters: Typer CLI, FastAPI API
 ```
 
 ## Development
 
 ```bash
-uv sync                        # install all dependencies
+uv sync                        # install dependencies (uv sync --extra http for FastAPI)
 uv run pytest                  # run the test suite
 uv run ruff check src tests    # lint
 uv run ruff format src tests   # format

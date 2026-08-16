@@ -6,7 +6,6 @@ import pytest
 
 from doc_unlock.application.unlock_document import UnlockDocumentUseCase
 from doc_unlock.domain.services import ProtectionRemovalService
-from doc_unlock.infrastructure.filesystem import LocalFileStorage
 from doc_unlock.infrastructure.ooxml import MsoffcryptoDecryptor, ZipPackageTransformer
 
 PPTX_DIR = Path(__file__).resolve().parent / 'fixtures' / 'pptx'
@@ -40,7 +39,6 @@ def encryption_password() -> str:
 @pytest.fixture
 def use_case() -> UnlockDocumentUseCase:
     return UnlockDocumentUseCase(
-        file_storage=LocalFileStorage(),
         decryptor=MsoffcryptoDecryptor(),
         transformer=ZipPackageTransformer(),
         protection_service=ProtectionRemovalService(),

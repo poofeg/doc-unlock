@@ -55,6 +55,32 @@ def test_from_path_without_suffix_raises():
         DocumentFormat.from_path(Path('no_suffix'))
 
 
+def test_from_filename_maps_known_suffixes():
+    assert DocumentFormat.from_filename('deck.pptx') is DocumentFormat.PPTX
+    assert DocumentFormat.from_filename('letter.docx') is DocumentFormat.DOCX
+    assert DocumentFormat.from_filename('book.xlsx') is DocumentFormat.XLSX
+
+
+def test_from_filename_maps_powerpoint_variants():
+    assert DocumentFormat.from_filename('deck.ppsx') is DocumentFormat.PPTX
+    assert DocumentFormat.from_filename('deck.pptm') is DocumentFormat.PPTX
+    assert DocumentFormat.from_filename('deck.ppsm') is DocumentFormat.PPTX
+
+
+def test_from_filename_is_case_insensitive():
+    assert DocumentFormat.from_filename('DECK.PPTX') is DocumentFormat.PPTX
+
+
+def test_from_filename_unknown_suffix_raises():
+    with pytest.raises(UnsupportedFormatError):
+        DocumentFormat.from_filename('archive.zip')
+
+
+def test_from_filename_without_suffix_raises():
+    with pytest.raises(UnsupportedFormatError):
+        DocumentFormat.from_filename('no_suffix')
+
+
 def test_protection_for_returns_pptx_protection():
     protection = ProtectionRemovalService.protection_for(DocumentFormat.PPTX)
 

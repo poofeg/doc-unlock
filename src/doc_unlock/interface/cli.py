@@ -1,6 +1,7 @@
 """Typer CLI interface (primary adapter)."""
 
 import logging
+from contextlib import ExitStack
 from pathlib import Path  # noqa: TC003
 from typing import Annotated, NoReturn
 
@@ -27,7 +28,6 @@ app = typer.Typer()
 
 def _build_use_case() -> UnlockDocumentUseCase:
     return UnlockDocumentUseCase(
-        file_storage=LocalFileStorage(),
         decryptor=MsoffcryptoDecryptor(),
         transformer=ZipPackageTransformer(),
         protection_service=ProtectionRemovalService(),
@@ -77,15 +77,19 @@ def unlock(
     ] = None,
 ) -> None:
     """Remove edit protection from a Microsoft Office document."""
-    command = UnlockDocumentCommand(
-        input_path=input_path,
-        output_path=output or _default_output_path(input_path),
-        password=password,
-    )
+    output_path = output or _default_output_path(input_path)
+    storage = LocalFileStorage()
 
     try:
-        result = _build_use_case().execute(command)
-        typer.secho(f'Protection removed: {result.output_path}', fg=typer.colors.GREEN)
+        with ExitStack() as stack:
+            source = stack.enter_context(storage.open_read(input_path))
+            command = UnlockDocumentCommand(
+                source=source,
+                destination=lambda: stack.enter_context(storage.open_write(output_path)),
+                filename=input_path.name,
+                password=password,
+            )
+            _build_use_case().execute(command)
     except InvalidPasswordError as exc:
         _fail(str(exc))
     except UnsupportedFormatError as exc:
@@ -95,3 +99,5 @@ def unlock(
     except Exception:
         logger.exception('Unexpected error while unlocking document')
         _fail('Unexpected error. See logs for details.')
+
+    typer.secho(f'Protection removed: {output_path}', fg=typer.colors.GREEN)

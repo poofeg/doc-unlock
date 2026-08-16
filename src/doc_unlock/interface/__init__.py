@@ -1,4 +1,4 @@
-"""Interface layer: primary adapters (CLI now, FastAPI later)."""
+"""Interface layer: primary adapters (CLI and FastAPI)."""
 
 from .cli import app
 

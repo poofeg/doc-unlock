@@ -19,7 +19,7 @@ A file can be encrypted, edit-protected, both, or neither.
 - CLI: `typer`.
 - Decryption: `msoffcrypto-tool`.
 - Dev: `pytest`, `ruff`, `mypy` (strict, `src` only).
-- Future: FastAPI interface (keep in mind when deciding where code belongs).
+- HTTP API: `fastapi` (optional dependency, `uv sync --extra http`).
 
 ## Architecture
 
@@ -34,25 +34,27 @@ src/doc_unlock/
 │   └── exceptions.py # DocumentUnlockError and subclasses
 ├── application/      # use cases + DTOs
 │   ├── dto.py        # UnlockDocumentCommand
-│   └── unlock_document.py  # UnlockDocumentUseCase, UnlockDocumentResult
+│   └── unlock_document.py  # UnlockDocumentUseCase
 ├── infrastructure/   # adapters implementing domain ports
 │   ├── filesystem.py # LocalFileStorage
 │   └── ooxml/
 │       ├── decryptor.py    # MsoffcryptoDecryptor
 │       └── transformer.py  # ZipPackageTransformer (streaming)
 └── interface/        # primary adapters
-    └── cli.py        # Typer app, `unlock` subcommand
+    ├── cli.py        # Typer app, `unlock` subcommand
+    ├── http.py       # FastAPI app, `POST /unlock`, `GET /`
+    └── index.html    # minimal upload form (no styles/JS)
 ```
 
 ### Ports (`domain/ports.py`)
 
-- `FileStorage.open_read(path) -> BinaryIO`, `open_write(path) -> BinaryIO`
+- `FileStorage.open_read(path) -> IO[bytes]`, `open_write(path) -> IO[bytes]` (used by the CLI adapter)
 - `Decryptor.decrypt(source, destination, password) -> None`
 - `PackageTransformer.transform(source, destination, target_part, transform_part) -> None`
 
 ### Domain vocabulary
 
-- `DocumentFormat` — `StrEnum`: `PPTX`, `DOCX`, `XLSX`; has `from_path()` (PowerPoint variants `.ppsx`/`.pptm`/`.ppsm` map to `PPTX`).
+- `DocumentFormat` — `StrEnum`: `PPTX`, `DOCX`, `XLSX`; `from_path()`, `from_filename()`, `from_suffix()` (PowerPoint variants `.ppsx`/`.pptm`/`.ppsm` map to `PPTX`).
 - `EditProtection` — frozen value object describing where/how protection is stored (`part_name`, `namespace`, `element_names`).
 - `ProtectionRemovalService` — stateless domain service:
   - `protection_for(format) -> EditProtection` (raises `UnsupportedFormatError` for unhandled formats);
@@ -62,17 +64,18 @@ There is no in-memory `Document` aggregate; the package is processed as a **stre
 
 ### Exceptions
 
-`DocumentUnlockError` (base) → `UnsupportedFormatError`, `InvalidPasswordError`, `InvalidDocumentError`. Domain code raises these; the CLI catches them and returns exit code 1.
+`DocumentUnlockError` (base) → `UnsupportedFormatError`, `InvalidPasswordError`, `InvalidDocumentError`. Domain code raises these; the CLI catches them and returns exit code 1, and the HTTP adapter maps them to status codes (400/415/422).
 
 ## Request flow (`UnlockDocumentUseCase`)
 
-1. `DocumentFormat.from_path(input_path)`
+The use case operates on **open streams** supplied by the caller:
+
+1. `DocumentFormat.from_filename(command.filename)`
 2. `ProtectionRemovalService.protection_for(format)`
-3. if a password was provided: `FileStorage.open_read(input_path)` → `Decryptor.decrypt(source, temp_file, password)` (streams the source, writes decrypted data to a disk-backed temp file)
-4. else: `FileStorage.open_read(input_path)`
-5. `FileStorage.open_write(output_path)`
-6. `PackageTransformer.transform(source, destination, protection.part_name, strip)` — streams the ZIP, transforms only the target part, copies all other entries chunk-by-chunk
-7. return `UnlockDocumentResult`
+3. if a password was provided: `Decryptor.decrypt(command.source, temp_file, password)` (streams the source, writes decrypted data to a disk-backed `SpooledTemporaryFile`)
+4. `PackageTransformer.transform(source, command.destination(), protection.part_name, strip)` — streams the ZIP, transforms only the target part, copies all other entries chunk-by-chunk
+
+`command.destination` is a lazy callable returning the output stream; it is invoked only after the source has been validated/decrypted, so a failed run never creates an output file. The caller (CLI or HTTP) owns and closes the source/destination streams.
 
 Memory: only `ppt/presentation.xml` (small) is held fully; large media parts are streamed. The encrypted path streams the source and writes decrypted data to a temp file; peak RSS is ~0.1x input size.
 
@@ -89,14 +92,16 @@ Memory: only `ppt/presentation.xml` (small) is held fully; large media parts are
 
 ```bash
 uv sync                        # install deps + editable project
+uv sync --extra http           # also install FastAPI (HTTP interface)
 uv run doc-unlock unlock ...   # run CLI
+uv run uvicorn doc_unlock.interface.http:app   # run HTTP server
 uv run pytest                  # tests
 uv run ruff check src tests    # lint
 uv run ruff format src tests   # format
 uv run mypy src                # type-check (strict, src only)
 ```
 
-The CLI is also runnable as `python -m doc_unlock` (via `__main__.py`). There is no `main.py`; the console script points at `doc_unlock.interface.cli:app`.
+The CLI is also runnable as `python -m doc_unlock` (via `__main__.py`). There is no `main.py`; the console script points at `doc_unlock.interface.cli:app`, and the HTTP app at `doc_unlock.interface.http:app`.
 
 ## Tests
 
@@ -105,6 +110,7 @@ The CLI is also runnable as `python -m doc_unlock` (via `__main__.py`). There is
 - `tests/conftest.py` provides path fixtures and a ready-built `UnlockDocumentUseCase`.
 - Tests are structural (parse output, assert protection elements removed / parts preserved). No golden/snapshot files.
 - ruff relaxations for tests: `tests/**` ignores `S101` (assert) and `PLR2004` (magic values).
+- `tests/test_http.py` uses `fastapi.testclient.TestClient` and requires the `http` extra.
 
 ## Gotchas
 
@@ -113,9 +119,11 @@ The CLI is also runnable as `python -m doc_unlock` (via `__main__.py`). There is
 - **`msoffcrypto` has no stubs.** It is ignored in `[tool.mypy.overrides]` with `ignore_missing_imports = true`.
 - **`msoffcrypto` error mapping.** `DecryptionError("Document is not encrypted")` is not a password error; check `office_file.is_encrypted()` first and raise `InvalidDocumentError`.
 - **XML security.** `xml.etree.ElementTree` is used with `# noqa: S405`/`S314`. Switching to `defusedxml` is a known follow-up (requires `uv add defusedxml`).
+- **FastAPI evaluates `Annotated[...]` at runtime** (like Typer), so `Annotated` is a runtime import in `interface/http.py`. `BackgroundTask` must be imported from `starlette.background` (FastAPI only re-exports `BackgroundTasks`, plural).
 
 ## Current limitations / roadmap
 
-- Only PPTX edit-protection removal is implemented. DOCX/XLSX are recognized by `DocumentFormat.from_path` but `ProtectionRemovalService` raises `UnsupportedFormatError` for them.
+- Only PPTX edit-protection removal is implemented. DOCX/XLSX are recognized by `DocumentFormat` but `ProtectionRemovalService` raises `UnsupportedFormatError` for them.
 - Streaming decryption is implemented in forks of `msoffcrypto-tool` and `olefile` (wired via `[tool.uv.sources]`), pending upstream merges.
-- FastAPI interface is planned, not started.
+- The HTTP interface is synchronous (`POST /unlock`); streaming the response concurrently with the request is a possible follow-up.
+- A minimal HTML upload form is served at `/` (`interface/index.html`, no styles or JS).
